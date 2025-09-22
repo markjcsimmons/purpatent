@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.log
+
+# Node/Next.js (frontend)
+simmonsip-frontend/node_modules
+simmonsip-frontend/.next
+simmonsip-frontend/.turbo
+simmonsip-frontend/.vercel
+
+# Runtime uploads
+simmonsip-frontend/public/uploads/*
+
+
