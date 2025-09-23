@@ -27,6 +27,11 @@
   <circle cx="300" cy="350" r="44" fill="url(#g)" stroke="#0b3d1f" stroke-width="8"/>
   <path d="M286 392 l-18 40 36-12 32 20 -6-42" fill="#166534" stroke="#0b3d1f" stroke-width="6"/>
 
+  <!-- Brand text: Pürpatent (compact) -->
+  <text x="128" y="420" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial" font-size="40" fill="#111827" letter-spacing="1">
+    Pür
+  </text>
+
   <!-- Small gavel-like mark to hint at IP/patent (subtle) -->
   <g transform="translate(180,350) scale(0.8)" fill="#111827">
     <rect x="0" y="-6" width="46" height="12" rx="3"/>
