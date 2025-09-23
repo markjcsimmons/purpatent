@@ -8,6 +8,7 @@ interface Row {
 }
 
 export default function KeywordTable({ filter = "" }: { filter?: string }) {
+  const API = process.env.NEXT_PUBLIC_API_BASE || "";
   const [rows, setRows] = useState<Row[]>([]);
   const [editing, setEditing] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
@@ -15,7 +16,7 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
 
   // load from API
   useEffect(() => {
-    fetch("/api/keywords")
+    fetch(`${API}/api/keywords`)
       .then((r) => r.json())
       .then((data: Row[]) => {
         const sorted = data.sort((a, b) =>
@@ -24,11 +25,11 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
         setRows(sorted);
         setLoaded(true);
       });
-  }, []);
+  }, [API]);
 
   // save to API
   const persist = (data: Row[]) => {
-    fetch("/api/keywords", {
+    fetch(`${API}/api/keywords`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),

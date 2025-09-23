@@ -8,13 +8,14 @@ interface Row {
 }
 
 export default function CompetitorTable({ filter = "" }: { filter?: string }) {
+  const API = process.env.NEXT_PUBLIC_API_BASE || "";
   const [rows, setRows] = useState<Row[]>([]);
   const [editing, setEditing] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   // initial load from API
   useEffect(() => {
-    fetch("/api/competitors")
+    fetch(`${API}/api/competitors`)
       .then((r) => r.json())
       .then((data: Row[]) => {
         const sorted = data.sort((a, b) =>
@@ -23,10 +24,10 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
         setRows(sorted);
         setLoaded(true);
       });
-  }, []);
+  }, [API]);
 
   const persist = (data: Row[]) => {
-    fetch("/api/competitors", {
+    fetch(`${API}/api/competitors`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
