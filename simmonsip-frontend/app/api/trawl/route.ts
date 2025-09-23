@@ -385,6 +385,39 @@ export async function GET(request: Request) {
           }
         } catch {}
 
+        // Purblack.com extraction (home and category pages)
+        try {
+          const compUrl = new URL(comp.URL);
+          const isPurblack = /(^|\.)purblack\.com$/i.test(compUrl.hostname);
+          if (isPurblack) {
+            type PBItem = { href: string; title: string; cardText: string };
+            const items: PBItem[] = [];
+            const aRe = /<a[^>]*href=\"([^\"]+)\"[^>]*>([\s\S]*?)<\/a>/gi;
+            let mA: RegExpExecArray | null;
+            while ((mA = aRe.exec(html))) {
+              const rawHref = mA[1];
+              if (!/\/product\//i.test(rawHref) && !/\/collections\//i.test(rawHref) && !/\/shop/i.test(rawHref)) continue;
+              const block = mA[2];
+              const tRaw = block.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+              let href = rawHref; try { href = new URL(rawHref, comp.URL).href; } catch {}
+              items.push({ href, title: tRaw, cardText: tRaw });
+            }
+            if (items.length > 0) {
+              for (const { kw, re } of keywordRegexes) {
+                for (const it of items) {
+                  const targetNorm = normalizeForMatch(it.title || it.cardText);
+                  const m = re.exec(targetNorm);
+                  if (m) {
+                    const at = m.index;
+                    const snippet = targetNorm.slice(Math.max(0, at - 40), at + m[0].length + 40).trim();
+                    results.push({ company: comp.name, keyword: kw, url: it.href, context: it.title || snippet });
+                  }
+                }
+              }
+            }
+          }
+        } catch {}
+
         // Walgreens listing-level extraction (search results pages)
         try {
           const compUrl = new URL(comp.URL);
@@ -568,19 +601,23 @@ export async function GET(request: Request) {
             return;
           }
           try {
-            const { launch } = await import("puppeteer");
+            // Use puppeteer-extra stealth for better render coverage
+            const { default: puppeteer } = await import("puppeteer-extra");
+            const { default: StealthPlugin } = await import("puppeteer-extra-plugin-stealth");
+            puppeteer.use(StealthPlugin());
             if (!sharedBrowser) {
-              sharedBrowser = await launch({
+              sharedBrowser = await puppeteer.launch({
                 args: ["--no-sandbox", "--disable-setuid-sandbox"],
-                protocolTimeout: Math.min(120000, Math.max(30000, fetchTimeoutMs + 30000)),
+                protocolTimeout: Math.min(180000, Math.max(60000, fetchTimeoutMs + 60000)),
               });
             }
             const page = await sharedBrowser.newPage();
             const navTimeout = Math.min(20000, Math.max(5000, fetchTimeoutMs));
             page.setDefaultNavigationTimeout(navTimeout);
             page.setDefaultTimeout(navTimeout);
-            await page.goto(comp.URL, { waitUntil: "domcontentloaded", timeout: navTimeout });
-            if (renderDelayMs > 0) await new Promise((r) => setTimeout(r, renderDelayMs));
+            await page.goto(comp.URL, { waitUntil: "networkidle2", timeout: navTimeout });
+            const extraDelay = Math.max(renderDelayMs, 3000);
+            if (extraDelay > 0) await new Promise((r) => setTimeout(r, extraDelay));
             const textContent = await page.evaluate(() => document.body.innerText);
             pagesRendered += 1;
 
