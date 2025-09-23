@@ -8,7 +8,11 @@ interface Row {
 }
 
 export default function KeywordTable({ filter = "" }: { filter?: string }) {
-  const API = process.env.NEXT_PUBLIC_API_BASE || "";
+  const API =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    (typeof window !== "undefined" && window.location.hostname.endsWith("purpatent.com")
+      ? "https://api.purpatent.com"
+      : "");
   const [rows, setRows] = useState<Row[]>([]);
   const [editing, setEditing] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
