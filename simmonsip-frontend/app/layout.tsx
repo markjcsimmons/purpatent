@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
+import AuthGate from "@/components/AuthGate";
 
 const plexSans = IBM_Plex_Sans({
   variable: "--font-plex-sans",
@@ -30,8 +31,10 @@ export default function RootLayout({
       <body
         className={`${plexSans.variable} ${plexMono.variable} antialiased bg-background text-foreground flex flex-col items-center`}
       >
-        <Header />
-        <main className="w-full max-w-5xl px-4 pb-12">{children}</main>
+        <AuthGate>
+          <Header />
+          <main className="w-full max-w-5xl px-4 pb-12">{children}</main>
+        </AuthGate>
       </body>
     </html>
   );
