@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   // persist record
   await fs.mkdir(dataDir, { recursive: true });
-  let arr: any[] = [];
+  let arr: { folder: string; url: string; filename?: string; phash?: string }[] = [];
   try {
     arr = JSON.parse(await fs.readFile(imgJson, "utf8"));
   } catch {}

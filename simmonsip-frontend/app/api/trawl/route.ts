@@ -140,7 +140,7 @@ export async function GET(request: Request) {
       toProcess = [competitors[idx]];
     }
 
-    let sharedBrowser: any | null = null;
+    let sharedBrowser: import("puppeteer").Browser | null = null;
 
     const withTimeout = async (input: RequestInfo | URL, opts: RequestInit & { timeoutMs?: number } = {}) => {
       const { timeoutMs = fetchTimeoutMs, ...rest } = opts;

@@ -14,7 +14,7 @@ export default function ImagesPage() {
   useEffect(() => {
     fetch("/api/images/list")
       .then((r) => r.json())
-      .then((arr: any[]) => setUploaded(arr));
+      .then((arr: { folder: string; url: string }[]) => setUploaded(arr));
   }, []);
 
   const folders = Array.from(new Set(uploaded.map((u) => u.folder))) as string[];

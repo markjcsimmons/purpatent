@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No url" }, { status: 400 });
     }
     const dataPath = path.join(process.cwd(), "data", "images.json");
-    let arr: any[] = [];
+    let arr: { folder: string; url: string; filename?: string; phash?: string }[] = [];
     try {
       arr = JSON.parse(await fs.readFile(dataPath, "utf8"));
     } catch {}
