@@ -18,17 +18,26 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [loaded, setLoaded] = useState(false);
 
-  // load from API
+  // load from API; auto-restore if empty or on failure
   useEffect(() => {
-    fetch(`${API}/api/keywords`)
-      .then((r) => r.json())
-      .then((data: Row[]) => {
+    (async () => {
+      try {
+        const data: Row[] = await fetch(`${API}/api/keywords`).then((r) => r.json());
         const sorted = data.sort((a, b) =>
           a.keyword.toLowerCase().localeCompare(b.keyword.toLowerCase())
         );
-        setRows(sorted);
+        if (sorted.length === 0) {
+          await restore();
+          setLoaded(true);
+        } else {
+          setRows(sorted);
+          setLoaded(true);
+        }
+      } catch {
+        await restore();
         setLoaded(true);
-      });
+      }
+    })();
   }, [API]);
 
   // save to API

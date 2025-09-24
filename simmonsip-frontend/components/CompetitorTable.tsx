@@ -17,17 +17,27 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
   const [editing, setEditing] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
 
-  // initial load from API
+  // initial load from API, auto-restore if empty
   useEffect(() => {
-    fetch(`${API}/api/competitors`)
-      .then((r) => r.json())
-      .then((data: Row[]) => {
+    (async () => {
+      try {
+        const data: Row[] = await fetch(`${API}/api/competitors`).then((r) => r.json());
         const sorted = data.sort((a, b) =>
           a.name.toLowerCase().localeCompare(b.name.toLowerCase())
         );
-        setRows(sorted);
+        if (sorted.length === 0) {
+          await restore();
+          setLoaded(true);
+        } else {
+          setRows(sorted);
+          setLoaded(true);
+        }
+      } catch {
+        // if API fails, attempt restore from CSV to seed
+        await restore();
         setLoaded(true);
-      });
+      }
+    })();
   }, [API]);
 
   const persist = (data: Row[]) => {
