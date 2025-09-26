@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import fs from "fs/promises";
 import { createHash } from "crypto";
@@ -60,7 +60,30 @@ function buildFlexibleRegex(keyword: string, maxGapWords = 30): RegExp {
   return new RegExp(`${forward.source}|${reverse.source}`, "i");
 }
 
-export async function GET(request: Request) {
+function allowOriginFrom(req: NextRequest): string {
+  const origin = req.headers.get("origin") || "";
+  const allowed = new Set([
+    "https://purpatent.com",
+    "https://www.purpatent.com",
+    "http://localhost:3000",
+  ]);
+  return allowed.has(origin) ? origin : "";
+}
+
+function setCors(res: NextResponse, origin: string) {
+  if (origin) res.headers.set("Access-Control-Allow-Origin", origin);
+  res.headers.set("Vary", "Origin");
+  res.headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+}
+
+export async function OPTIONS(req: NextRequest) {
+  const res = new NextResponse(null, { status: 204 });
+  setCors(res, allowOriginFrom(req));
+  return res;
+}
+
+export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
     const dry = url.searchParams.get("dry") === "1";
@@ -859,7 +882,9 @@ export async function GET(request: Request) {
     }
 
     const elapsedMs = Date.now() - startedAt;
-    return NextResponse.json({ results, meta: { elapsedMs, sitesProcessed, pagesRendered, deadlineMs, fetchTimeoutMs, concurrency } });
+    const res = NextResponse.json({ results, meta: { elapsedMs, sitesProcessed, pagesRendered, deadlineMs, fetchTimeoutMs, concurrency } });
+    setCors(res, allowOriginFrom(request));
+    return res;
   } catch (e) {
     return NextResponse.json(
       { error: "Failed to trawl", details: (e as Error).message },

@@ -9,6 +9,11 @@ interface Result {
 }
 
 export default function Home() {
+  const API =
+    process.env.NEXT_PUBLIC_API_BASE ||
+    (typeof window !== "undefined" && window.location.hostname.endsWith("purpatent.com")
+      ? "https://api.purpatent.com"
+      : "");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Result[]>([]);
   const [includeImages, setIncludeImages] = useState(false);
@@ -33,7 +38,7 @@ export default function Home() {
 
       const controller = new AbortController();
       const to = setTimeout(() => controller.abort(), 630000);
-      const res = await fetch(`/api/trawl?${params.toString()}`, { signal: controller.signal });
+      const res = await fetch(`${API}/api/trawl?${params.toString()}`, { signal: controller.signal });
       clearTimeout(to);
       const data = await res.json();
       setResults(data.results || []);
