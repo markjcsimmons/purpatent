@@ -17,6 +17,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Result[]>([]);
   const [includeImages, setIncludeImages] = useState(false);
+  const [quickRun, setQuickRun] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("pp_trawl_results");
@@ -28,16 +29,28 @@ export default function Home() {
     try {
       const params = new URLSearchParams();
       if (includeImages) params.set("includeImages", "1");
-      // Accuracy-first defaults: include marketplaces, JS-render fallback, generous timeouts
-      params.set("maxSites", "20");
-      params.set("concurrency", "3");
-      params.set("renderDelayMs", "1500");
-      params.set("fetchTimeoutMs", "15000");
-      // Keep client-side abort slightly above server deadline to avoid premature aborts
-      params.set("deadlineMs", "600000");
+
+      if (quickRun) {
+        // Quick run: broad coverage, no rendering, shorter deadlines to avoid UI/proxy timeouts
+        params.set("maxSites", "999");
+        params.set("limitKeywords", "50");
+        params.set("skipRender", "1");
+        params.set("concurrency", "4");
+        params.set("fetchTimeoutMs", "10000");
+        params.set("deadlineMs", "90000");
+      } else {
+        // Full run: accuracy-first, allow rendering fallbacks and generous timeouts
+        params.set("maxSites", "20");
+        params.set("concurrency", "3");
+        params.set("renderDelayMs", "1500");
+        params.set("fetchTimeoutMs", "15000");
+        params.set("deadlineMs", "600000");
+      }
 
       const controller = new AbortController();
-      const to = setTimeout(() => controller.abort(), 630000);
+      // Keep abort slightly above server deadline
+      const clientAbortMs = Number(params.get("deadlineMs")) + 5000;
+      const to = setTimeout(() => controller.abort(), clientAbortMs);
       const res = await fetch(`${API}/api/trawl?${params.toString()}`, { signal: controller.signal });
       clearTimeout(to);
       const data = await res.json();
@@ -68,6 +81,14 @@ export default function Home() {
             onChange={(e) => setIncludeImages(e.target.checked)}
           />
           Include images
+        </label>
+        <label className="text-xs flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={quickRun}
+            onChange={(e) => setQuickRun(e.target.checked)}
+          />
+          Quick run
         </label>
       </div>
 
