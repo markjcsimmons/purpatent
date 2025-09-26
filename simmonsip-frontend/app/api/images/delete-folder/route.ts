@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No folder" }, { status: 400 });
     }
 
-    const dataPath = path.join(process.cwd(), "data", "images.json");
+    const dataPath = path.join(process.env.DATA_DIR || path.join(process.cwd(), "data"), "images.json");
     let arr: { folder: string; url: string; filename?: string; phash?: string }[] = [];
     try {
       arr = JSON.parse(await fs.readFile(dataPath, "utf8"));

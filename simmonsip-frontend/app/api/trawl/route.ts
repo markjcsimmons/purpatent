@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
 
     let stored: { url: string; filename: string; phash: string }[] = [];
     try {
-      stored = JSON.parse(await fs.readFile(path.join(process.cwd(), "data", "images.json"), "utf8"));
+      stored = JSON.parse(await fs.readFile(path.join(base, "images.json"), "utf8"));
     } catch {}
 
     const results: { company: string; keyword: string; url: string; context?: string }[] = [];

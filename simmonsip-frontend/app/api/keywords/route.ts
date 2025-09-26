@@ -47,8 +47,11 @@ async function ensureJson() {
 
 export async function GET(req: NextRequest) {
   await ensureJson();
+  const url = new URL(req.url);
+  const debug = url.searchParams.get("debug") === "1";
   const json = await fs.readFile(jsonPath, "utf8");
-  const res = NextResponse.json(JSON.parse(json));
+  const body = debug ? { dataDir, jsonPath, data: JSON.parse(json) } : JSON.parse(json);
+  const res = NextResponse.json(body);
   const origin = allowOriginFrom(req);
   Object.entries(corsHeaders(origin)).forEach(([k, v]) => res.headers.set(k, v));
   return res;
@@ -62,7 +65,7 @@ export async function PUT(req: NextRequest) {
     }
     await fs.mkdir(dataDir, { recursive: true });
     await fs.writeFile(jsonPath, JSON.stringify(body, null, 2), "utf8");
-    const res = NextResponse.json({ ok: true });
+    const res = NextResponse.json({ ok: true, dataDir, jsonPath });
     const origin = allowOriginFrom(req);
     Object.entries(corsHeaders(origin)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
