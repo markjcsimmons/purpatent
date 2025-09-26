@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs/promises";
 import Papa from "papaparse";
 
-const dataDir = path.join(process.cwd(), "data");
+const dataDir = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const jsonPath = path.join(dataDir, "keywords.json");
 const csvPath = path.join(process.cwd(), "public", "patent_keywords.csv");
 
@@ -22,6 +22,7 @@ function corsHeaders(origin: string): HeadersInit {
     Vary: "Origin",
     "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Cache-Control": "no-store",
   };
   if (origin) headers["Access-Control-Allow-Origin"] = origin;
   return headers;

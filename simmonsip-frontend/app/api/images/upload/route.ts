@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs/promises";
 import { randomUUID, createHash } from "crypto";
 
-const dataDir = path.join(process.cwd(), "data");
+const dataDir = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const imgJson = path.join(dataDir, "images.json");
 
 export async function POST(request: Request) {

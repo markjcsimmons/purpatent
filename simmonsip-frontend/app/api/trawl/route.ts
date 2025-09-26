@@ -117,9 +117,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: out });
     }
 
-    const base = process.cwd();
-    const compPath = path.join(base, "data", "competitors.json");
-    const keyPath = path.join(base, "data", "keywords.json");
+    const base = process.env.DATA_DIR || path.join(process.cwd(), "data");
+    const compPath = path.join(base, "competitors.json");
+    const keyPath = path.join(base, "keywords.json");
 
     let competitors: Competitor[] = [];
     try {
@@ -883,6 +883,7 @@ export async function GET(request: NextRequest) {
 
     const elapsedMs = Date.now() - startedAt;
     const res = NextResponse.json({ results, meta: { elapsedMs, sitesProcessed, pagesRendered, deadlineMs, fetchTimeoutMs, concurrency } });
+    res.headers.set("Cache-Control", "no-store");
     setCors(res, allowOriginFrom(request));
     return res;
   } catch (e) {

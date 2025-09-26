@@ -31,7 +31,7 @@ export async function OPTIONS(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const dataPath = path.join(process.cwd(), "data", "images.json");
+    const dataPath = path.join(process.env.DATA_DIR || path.join(process.cwd(), "data"), "images.json");
     const arr: StoredImage[] = JSON.parse(await fs.readFile(dataPath, "utf8"));
     const origin = allowOriginFrom(req);
     return new NextResponse(JSON.stringify(arr), { status: 200, headers: corsHeaders(origin) });
