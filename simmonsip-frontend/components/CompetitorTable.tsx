@@ -49,10 +49,10 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
   };
 
   useEffect(() => {
-    if (loaded && editing === null) {
+    if (loaded) {
       persist(rows);
     }
-  }, [rows, editing, loaded]);
+  }, [rows, loaded]);
 
   const restore = async () => {
     const csv = await fetch("/competitors.csv").then((r) => r.text());

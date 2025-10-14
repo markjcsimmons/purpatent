@@ -49,12 +49,12 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
     }).catch(() => {});
   };
 
-  // whenever rows change after load & not editing
+  // whenever rows change after load
   useEffect(() => {
-    if (loaded && editing === null) {
+    if (loaded) {
       persist(rows);
     }
-  }, [rows, editing, loaded]);
+  }, [rows, loaded]);
 
   const restore = async () => {
     const csv = await fetch("/patent_keywords.csv").then((r) => r.text());
