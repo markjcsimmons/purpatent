@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
-import fs from "fs/promises";
-import Papa from "papaparse";
-
-const dataDir = process.env.DATA_DIR || path.join(process.cwd(), "data");
-const jsonPath = path.join(dataDir, "competitors.json");
-const csvPath = path.join(process.cwd(), "public", "competitors.csv");
+import { supabase } from "@/lib/supabase";
 
 function allowOriginFrom(req: NextRequest): string {
   const origin = req.headers.get("origin") || "";
@@ -33,27 +27,30 @@ export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
 }
 
-async function ensureJson() {
-  try {
-    await fs.access(jsonPath);
-  } catch {
-    const csv = await fs.readFile(csvPath, "utf8");
-    const { data } = Papa.parse(csv, { header: true, skipEmptyLines: true });
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(jsonPath, JSON.stringify(data, null, 2), "utf8");
-  }
-}
-
 export async function GET(req: NextRequest) {
-  await ensureJson();
-  const url = new URL(req.url);
-  const debug = url.searchParams.get("debug") === "1";
-  const json = await fs.readFile(jsonPath, "utf8");
-  const body = debug ? { dataDir, jsonPath, data: JSON.parse(json) } : JSON.parse(json);
-  const res = NextResponse.json(body);
-  const origin = allowOriginFrom(req);
-  Object.entries(corsHeaders(origin)).forEach(([k, v]) => res.headers.set(k, v));
-  return res;
+  try {
+    const { data, error } = await supabase
+      .from('competitors')
+      .select('*')
+      .order('name', { ascending: true });
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Transform to match expected format {name, URL}
+    const competitors = (data || []).map((row: any) => ({
+      name: row.name,
+      URL: row.url
+    }));
+
+    const res = NextResponse.json(competitors);
+    const origin = allowOriginFrom(req);
+    Object.entries(corsHeaders(origin)).forEach(([k, v]) => res.headers.set(k, v));
+    return res;
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }
 
 export async function PUT(req: NextRequest) {
@@ -62,14 +59,37 @@ export async function PUT(req: NextRequest) {
     if (!Array.isArray(body)) {
       return NextResponse.json({ error: "Invalid body" }, { status: 400 });
     }
-    await fs.mkdir(dataDir, { recursive: true });
-    await fs.writeFile(jsonPath, JSON.stringify(body, null, 2), "utf8");
-    const res = NextResponse.json({ ok: true, dataDir, jsonPath });
+
+    // Delete all existing competitors
+    const { error: deleteError } = await supabase
+      .from('competitors')
+      .delete()
+      .neq('id', 0); // Delete all rows
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    // Insert new competitors
+    const competitors = body.map((item: any) => ({
+      name: item.name,
+      url: item.URL
+    }));
+
+    const { error: insertError } = await supabase
+      .from('competitors')
+      .insert(competitors);
+
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
+
+    const res = NextResponse.json({ ok: true });
     const origin = allowOriginFrom(req);
     Object.entries(corsHeaders(origin)).forEach(([k, v]) => res.headers.set(k, v));
     return res;
-  } catch {
-    return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
