@@ -9,11 +9,7 @@ interface Result {
 }
 
 export default function Home() {
-  const API =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    (typeof window !== "undefined" && window.location.hostname.endsWith("purpatent.com")
-      ? "https://api.purpatent.com"
-      : "");
+  const API = process.env.NEXT_PUBLIC_API_BASE || "";
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Result[]>([]);
   const [includeImages, setIncludeImages] = useState(false);

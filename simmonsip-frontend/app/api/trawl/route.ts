@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
-import fs from "fs/promises";
 import { createHash } from "crypto";
+import { supabase } from "@/lib/supabase";
 
 interface Competitor {
   name: string;
@@ -117,20 +116,35 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: out });
     }
 
-    const base = process.env.DATA_DIR || path.join(process.cwd(), "data");
-    const compPath = path.join(base, "competitors.json");
-    const keyPath = path.join(base, "keywords.json");
-
+    // Load competitors from Supabase
     let competitors: Competitor[] = [];
     try {
-      competitors = JSON.parse(await fs.readFile(compPath, "utf8"));
+      const { data: competitorData, error: compError } = await supabase
+        .from('competitors')
+        .select('name, url')
+        .order('name', { ascending: true });
+      
+      if (!compError && competitorData) {
+        competitors = competitorData.map((c: any) => ({
+          name: c.name,
+          URL: c.url
+        }));
+      }
     } catch {}
 
+    // Load keywords from Supabase
     let rawKeywords: string[] = [];
     try {
-      rawKeywords = (JSON.parse(await fs.readFile(keyPath, "utf8")) as KeywordRow[])
-        .map((k) => k.keyword.trim())
-        .filter((k) => k.length >= 1);
+      const { data: keywordData, error: keyError } = await supabase
+        .from('keywords')
+        .select('keyword')
+        .order('keyword', { ascending: true });
+      
+      if (!keyError && keywordData) {
+        rawKeywords = (keywordData as KeywordRow[])
+          .map((k) => k.keyword.trim())
+          .filter((k) => k.length >= 1);
+      }
     } catch {}
 
     if (limitKeywords > 0 && Number.isFinite(limitKeywords)) {
@@ -148,10 +162,8 @@ export async function GET(request: NextRequest) {
 
     const keywordRegexes = rawKeywords.map((kw) => ({ kw, re: buildFlexibleRegex(normalizeForMatch(kw), 30) }));
 
+    // TODO: Migrate images to database if needed
     let stored: { url: string; filename: string; phash: string }[] = [];
-    try {
-      stored = JSON.parse(await fs.readFile(path.join(base, "images.json"), "utf8"));
-    } catch {}
 
     const results: { company: string; keyword: string; url: string; context?: string }[] = [];
     const startedAt = Date.now();
