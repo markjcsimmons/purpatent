@@ -36,7 +36,7 @@ export default function Home() {
         params.set("deadlineMs", "90000");
       } else {
         // Full run: accuracy-first, allow rendering fallbacks and generous timeouts
-        params.set("maxSites", "20");
+        params.set("maxSites", "50"); // Increased from 20 to cover all 44 competitors
         params.set("concurrency", "3");
         params.set("renderDelayMs", "1500");
         params.set("fetchTimeoutMs", "15000");

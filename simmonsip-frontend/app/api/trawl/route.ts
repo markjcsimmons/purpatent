@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
       toProcess = [competitors[idx]];
     }
 
-    let sharedBrowser: import("puppeteer").Browser | null = null;
+    let sharedBrowser: any = null;
 
     const withTimeout = async (input: RequestInfo | URL, opts: RequestInit & { timeoutMs?: number } = {}) => {
       const { timeoutMs = fetchTimeoutMs, ...rest } = opts;
@@ -420,23 +420,35 @@ export async function GET(request: NextRequest) {
           }
         } catch {}
 
-        // Purblack.com extraction (home and category pages)
+        // Purblack.com extraction (product and category pages)
+        // Note: General page content matching happens later for all sites
         try {
           const compUrl = new URL(comp.URL);
           const isPurblack = /(^|\.)purblack\.com$/i.test(compUrl.hostname);
           if (isPurblack) {
+            // Extract product links and check their text/context
             type PBItem = { href: string; title: string; cardText: string };
             const items: PBItem[] = [];
+            
+            // Look for all links (not just product links)
             const aRe = /<a[^>]*href=\"([^\"]+)\"[^>]*>([\s\S]*?)<\/a>/gi;
             let mA: RegExpExecArray | null;
             while ((mA = aRe.exec(html))) {
               const rawHref = mA[1];
-              if (!/\/product\//i.test(rawHref) && !/\/collections\//i.test(rawHref) && !/\/shop/i.test(rawHref)) continue;
+              // Skip external links, anchors, and non-relevant paths
+              if (/^(https?:)?\/\//i.test(rawHref) && !/(^|\.)purblack\.com/i.test(rawHref)) continue;
+              if (/^#/.test(rawHref)) continue;
+              if (/^\s*$/.test(rawHref)) continue;
+              
               const block = mA[2];
               const tRaw = block.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-              let href = rawHref; try { href = new URL(rawHref, comp.URL).href; } catch {}
+              if (!tRaw) continue; // Skip empty link text
+              
+              let href = rawHref; 
+              try { href = new URL(rawHref, comp.URL).href; } catch {}
               items.push({ href, title: tRaw, cardText: tRaw });
             }
+            
             if (items.length > 0) {
               for (const { kw, re } of keywordRegexes) {
                 for (const it of items) {
