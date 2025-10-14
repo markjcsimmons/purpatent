@@ -87,7 +87,9 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
 
-  const visibleRows = rows.filter((r) => norm(r.keyword).includes(norm(filter)));
+  const visibleRows = rows
+    .map((r, originalIdx) => ({ ...r, originalIdx }))
+    .filter((r) => norm(r.keyword).includes(norm(filter)));
 
   const sortedRows = [...visibleRows].sort((a, b) =>
     sortOrder === "asc"
@@ -122,13 +124,13 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
           </tr>
         </thead>
         <tbody>
-          {displayRows.map((row, idx) => (
-            <tr key={idx} className="hover:bg-gray-50">
+          {displayRows.map((row) => (
+            <tr key={row.originalIdx} className="hover:bg-gray-50">
               <td className="border px-1 py-0.5">
-                {editing === idx ? (
+                {editing === row.originalIdx ? (
                   <input
                     value={row.keyword}
-                    onChange={(e) => updateCell(idx, "keyword", e.target.value)}
+                    onChange={(e) => updateCell(row.originalIdx, "keyword", e.target.value)}
                     className="w-full border rounded px-1"
                   />
                 ) : (
@@ -136,10 +138,10 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
                 )}
               </td>
               <td className="border px-1 py-0.5">
-                {editing === idx ? (
+                {editing === row.originalIdx ? (
                   <input
                     value={row.patent}
-                    onChange={(e) => updateCell(idx, "patent", e.target.value)}
+                    onChange={(e) => updateCell(row.originalIdx, "patent", e.target.value)}
                     className="w-full border rounded px-1"
                   />
                 ) : (
@@ -147,17 +149,17 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
                 )}
               </td>
               <td className="px-2 py-0 text-center whitespace-nowrap text-xs flex items-center justify-center gap-2 border-y border-r border-gray-200">
-                {editing === idx ? (
+                {editing === row.originalIdx ? (
                   <button onClick={() => setEditing(null)} className="text-green-600 hover:underline">
                     Save
                   </button>
                 ) : (
-                  <button onClick={() => setEditing(idx)} className="text-black hover:underline">
+                  <button onClick={() => setEditing(row.originalIdx)} className="text-black hover:underline">
                     Edit
                   </button>
                 )}
                 <button
-                  onClick={() => deleteRow(idx)}
+                  onClick={() => deleteRow(row.originalIdx)}
                   className="text-red-400 hover:text-red-600 hover:font-bold text-base"
                   aria-label="Delete row"
                 >

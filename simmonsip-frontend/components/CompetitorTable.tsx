@@ -88,9 +88,9 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
 
-  const visibleRows = rows.filter((r) =>
-    norm(r.name).includes(norm(filter))
-  );
+  const visibleRows = rows
+    .map((r, originalIdx) => ({ ...r, originalIdx }))
+    .filter((r) => norm(r.name).includes(norm(filter)));
 
   useEffect(() => {
     const handler = () => addRow();
@@ -124,13 +124,13 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
           </tr>
         </thead>
         <tbody>
-          {visibleRows.map((row, idx) => (
-            <tr key={idx} className="hover:bg-gray-50">
+          {visibleRows.map((row) => (
+            <tr key={row.originalIdx} className="hover:bg-gray-50">
               <td className="border px-1 py-0.5">
-                {editing === idx ? (
+                {editing === row.originalIdx ? (
                   <input
                     value={row.name}
-                    onChange={(e) => updateCell(idx, "name", e.target.value)}
+                    onChange={(e) => updateCell(row.originalIdx, "name", e.target.value)}
                     className="w-full border rounded px-1"
                   />
                 ) : (
@@ -138,10 +138,10 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
                 )}
               </td>
               <td className="border px-1 py-0.5">
-                {editing === idx ? (
+                {editing === row.originalIdx ? (
                   <input
                     value={row.URL}
-                    onChange={(e) => updateCell(idx, "URL", e.target.value)}
+                    onChange={(e) => updateCell(row.originalIdx, "URL", e.target.value)}
                     className="w-full border rounded px-1"
                   />
                 ) : (
@@ -149,7 +149,7 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
                 )}
               </td>
               <td className="px-2 py-0 text-center whitespace-nowrap text-xs flex items-center justify-center gap-2 border-y border-r border-gray-200">
-                {editing === idx ? (
+                {editing === row.originalIdx ? (
                   <button
                     onClick={() => setEditing(null)}
                     className="text-green-600 hover:underline"
@@ -158,14 +158,14 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
                   </button>
                 ) : (
                   <button
-                    onClick={() => setEditing(idx)}
+                    onClick={() => setEditing(row.originalIdx)}
                     className="text-black hover:underline"
                   >
                     Edit
                   </button>
                 )}
                 <button
-                  onClick={() => deleteRow(idx)}
+                  onClick={() => deleteRow(row.originalIdx)}
                   className="text-red-400 hover:text-red-600 hover:font-bold text-base"
                   aria-label="Delete row"
                 >
