@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Papa from "papaparse";
+import { showToast } from "./Toast";
 
 interface Row {
   name: string;
@@ -12,6 +13,8 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [editing, setEditing] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [sortColumn, setSortColumn] = useState<"name" | "URL" | null>("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   // initial load from API, auto-restore if empty
   useEffect(() => {
@@ -84,9 +87,42 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
 
-  const visibleRows = rows
+  const handleSort = (column: "name" | "URL") => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast("Copied to clipboard", "success");
+    });
+  };
+
+  const getUrlDomain = (url: string) => {
+    try {
+      return new URL(url).hostname.replace("www.", "");
+    } catch {
+      return url;
+    }
+  };
+
+  let visibleRows = rows
     .map((r, originalIdx) => ({ ...r, originalIdx }))
     .filter((r) => norm(r.name).includes(norm(filter)));
+
+  // Apply sorting
+  if (sortColumn) {
+    visibleRows = visibleRows.sort((a, b) => {
+      const aVal = sortColumn === "name" ? a.name : a.URL;
+      const bVal = sortColumn === "name" ? b.name : b.URL;
+      const comparison = aVal.toLowerCase().localeCompare(bVal.toLowerCase());
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }
 
   useEffect(() => {
     const handler = () => addRow();
@@ -114,9 +150,25 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
       <table className="w-full text-xs border-collapse">
         <thead className="bg-gray-100">
           <tr>
-            <th className="border border-gray-200 px-2 py-1 text-left">Name</th>
-            <th className="border border-gray-200 px-2 py-1 text-left">URL</th>
-            <th className="px-2 py-1 border-y border-r border-gray-200"></th>
+            <th
+              className="border border-gray-200 px-2 py-1 text-left cursor-pointer hover:bg-gray-200 select-none"
+              onClick={() => handleSort("name")}
+            >
+              <div className="flex items-center gap-1">
+                Name
+                {sortColumn === "name" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
+              </div>
+            </th>
+            <th
+              className="border border-gray-200 px-2 py-1 text-left cursor-pointer hover:bg-gray-200 select-none"
+              onClick={() => handleSort("URL")}
+            >
+              <div className="flex items-center gap-1">
+                URL
+                {sortColumn === "URL" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
+              </div>
+            </th>
+            <th className="px-2 py-1 border-y border-r border-gray-200 w-24"></th>
           </tr>
         </thead>
         <tbody>
@@ -141,7 +193,24 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
                     className="w-full border rounded px-1"
                   />
                 ) : (
-                  <a href={row.URL} target="_blank" rel="noopener noreferrer" className="underline text-blue-600 hover:text-blue-800">{row.URL}</a>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={row.URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline text-blue-600 hover:text-blue-800 flex-1 truncate"
+                      title={row.URL}
+                    >
+                      {getUrlDomain(row.URL)}
+                    </a>
+                    <button
+                      onClick={() => copyToClipboard(row.URL)}
+                      className="text-gray-500 hover:text-gray-700 px-1"
+                      title="Copy URL"
+                    >
+                      📋
+                    </button>
+                  </div>
                 )}
               </td>
               <td className="px-2 py-0 text-center whitespace-nowrap text-xs flex items-center justify-center gap-2 border-y border-r border-gray-200">

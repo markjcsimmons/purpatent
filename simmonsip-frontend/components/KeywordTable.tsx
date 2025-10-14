@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Papa from "papaparse";
+import { showToast } from "./Toast";
 
 interface Row {
   keyword: string;
@@ -11,7 +12,8 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
   const API = process.env.NEXT_PUBLIC_API_BASE || "";
   const [rows, setRows] = useState<Row[]>([]);
   const [editing, setEditing] = useState<number | null>(null);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [sortColumn, setSortColumn] = useState<"keyword" | "patent">("keyword");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [loaded, setLoaded] = useState(false);
 
   // load from API; auto-restore if empty or on failure
@@ -83,15 +85,32 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
 
-  const visibleRows = rows
+  const handleSort = (column: "keyword" | "patent") => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast("Copied to clipboard", "success");
+    });
+  };
+
+  let visibleRows = rows
     .map((r, originalIdx) => ({ ...r, originalIdx }))
     .filter((r) => norm(r.keyword).includes(norm(filter)));
 
-  const sortedRows = [...visibleRows].sort((a, b) =>
-    sortOrder === "asc"
-      ? a.keyword.toLowerCase().localeCompare(b.keyword.toLowerCase())
-      : b.keyword.toLowerCase().localeCompare(a.keyword.toLowerCase())
-  );
+  // Apply sorting
+  const sortedRows = [...visibleRows].sort((a, b) => {
+    const aVal = sortColumn === "keyword" ? a.keyword : a.patent;
+    const bVal = sortColumn === "keyword" ? b.keyword : b.patent;
+    const comparison = aVal.toLowerCase().localeCompare(bVal.toLowerCase());
+    return sortDirection === "asc" ? comparison : -comparison;
+  });
 
   const displayRows = editing !== null ? visibleRows : sortedRows;
 
@@ -114,9 +133,25 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
       <table className="w-full text-xs border-collapse">
         <thead className="bg-gray-100">
           <tr>
-            <th className="border border-gray-200 px-2 py-1 text-left">Keyword</th>
-            <th className="border border-gray-200 px-2 py-1 text-left">Patent</th>
-            <th className="px-2 py-1 border-y border-r border-gray-200"></th>
+            <th
+              className="border border-gray-200 px-2 py-1 text-left cursor-pointer hover:bg-gray-200 select-none"
+              onClick={() => handleSort("keyword")}
+            >
+              <div className="flex items-center gap-1">
+                Keyword
+                {sortColumn === "keyword" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
+              </div>
+            </th>
+            <th
+              className="border border-gray-200 px-2 py-1 text-left cursor-pointer hover:bg-gray-200 select-none"
+              onClick={() => handleSort("patent")}
+            >
+              <div className="flex items-center gap-1">
+                Patent
+                {sortColumn === "patent" && <span>{sortDirection === "asc" ? "↑" : "↓"}</span>}
+              </div>
+            </th>
+            <th className="px-2 py-1 border-y border-r border-gray-200 w-24"></th>
           </tr>
         </thead>
         <tbody>
@@ -130,7 +165,16 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
                     className="w-full border rounded px-1"
                   />
                 ) : (
-                  row.keyword
+                  <div className="flex items-center gap-1">
+                    <span className="flex-1">{row.keyword}</span>
+                    <button
+                      onClick={() => copyToClipboard(row.keyword)}
+                      className="text-gray-500 hover:text-gray-700 px-1"
+                      title="Copy keyword"
+                    >
+                      📋
+                    </button>
+                  </div>
                 )}
               </td>
               <td className="border px-1 py-0.5">
@@ -141,7 +185,16 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
                     className="w-full border rounded px-1"
                   />
                 ) : (
-                  row.patent
+                  <div className="flex items-center gap-1">
+                    <span className="flex-1">{row.patent}</span>
+                    <button
+                      onClick={() => copyToClipboard(row.patent)}
+                      className="text-gray-500 hover:text-gray-700 px-1"
+                      title="Copy patent"
+                    >
+                      📋
+                    </button>
+                  </div>
                 )}
               </td>
               <td className="px-2 py-0 text-center whitespace-nowrap text-xs flex items-center justify-center gap-2 border-y border-r border-gray-200">

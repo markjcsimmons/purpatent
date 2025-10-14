@@ -1,46 +1,54 @@
 "use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 
 export default function Header() {
-  return (
-    <header className="w-full flex justify-center items-start pt-6 px-4 relative">
-      {/* Hamburger + dropdown wrapper */}
-      <div className="absolute left-4 top-6 group">
-        <button aria-label="Menu" className="text-2xl select-none pointer-events-auto">
-          ☰
-        </button>
-        {/* Dropdown appears on hover */}
-        <nav className="absolute top-6 left-0 mt-2 bg-white border border-gray-200 shadow rounded p-2 text-xs hidden group-hover:block">
-          <ul className="space-y-1">
-            <li>
-              <Link href="/" className="block px-2 py-1 hover:bg-gray-100 whitespace-nowrap">
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link href="/competitors" className="block px-2 py-1 hover:bg-gray-100 whitespace-nowrap">
-                Competitors
-              </Link>
-            </li>
-            <li>
-              <Link href="/keywords" className="block px-2 py-1 hover:bg-gray-100 whitespace-nowrap">
-                Keywords
-              </Link>
-            </li>
-            <li>
-              <Link href="/images" className="block px-2 py-1 hover:bg-gray-100 whitespace-nowrap">
-                Images
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      </div>
+  const pathname = usePathname();
 
-      {/* Centered logo */}
-      <Link href="/" className="pointer-events-auto">
-        <Logo />
-      </Link>
+  const navItems = [
+    { href: "/", label: "Trawl" },
+    { href: "/competitors", label: "Competitors" },
+    { href: "/keywords", label: "Keywords" },
+    { href: "/images", label: "Images" },
+  ];
+
+  return (
+    <header className="w-full border-b border-gray-200 bg-white">
+      <div className="max-w-5xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex-shrink-0">
+            <Logo />
+          </Link>
+
+          {/* Navigation */}
+          <nav>
+            <ul className="flex items-center gap-1">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={`
+                        px-3 py-1.5 rounded text-xs font-medium transition-colors
+                        ${
+                          isActive
+                            ? "bg-green-700 text-white"
+                            : "text-gray-700 hover:bg-gray-100"
+                        }
+                      `}
+                    >
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        </div>
+      </div>
     </header>
   );
 }
