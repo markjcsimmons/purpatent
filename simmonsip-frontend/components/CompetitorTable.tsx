@@ -8,11 +8,7 @@ interface Row {
 }
 
 export default function CompetitorTable({ filter = "" }: { filter?: string }) {
-  const API =
-    process.env.NEXT_PUBLIC_API_BASE ||
-    (typeof window !== "undefined" && window.location.hostname.endsWith("purpatent.com")
-      ? "https://api.purpatent.com"
-      : "");
+  const API = process.env.NEXT_PUBLIC_API_BASE || "";
   const [rows, setRows] = useState<Row[]>([]);
   const [editing, setEditing] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
