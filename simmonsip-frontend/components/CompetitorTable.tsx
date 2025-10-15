@@ -15,6 +15,7 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
   const [loaded, setLoaded] = useState(false);
   const [sortColumn, setSortColumn] = useState<"name" | "URL" | null>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // initial load from API, auto-restore if empty
   useEffect(() => {
@@ -39,17 +40,31 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
     })();
   }, [API]);
 
-  const persist = (data: Row[]) => {
-    fetch(`${API}/api/competitors`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }).catch(() => {});
+  const persist = async (data: Row[]) => {
+    try {
+      await fetch(`${API}/api/competitors`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      setHasUnsavedChanges(false);
+      showToast("Changes saved successfully", "success");
+    } catch {
+      showToast("Failed to save changes", "error");
+    }
+  };
+
+  const handleSave = () => {
+    if (editing !== null) {
+      setEditing(null);
+    }
+    persist(rows);
   };
 
   useEffect(() => {
+    // Mark as having unsaved changes when rows change (but don't auto-save)
     if (loaded) {
-      persist(rows);
+      setHasUnsavedChanges(true);
     }
   }, [rows, loaded]);
 
@@ -133,12 +148,25 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
   return (
     <div className="mt-8 w-full max-w-3xl mx-auto overflow-x-auto">
       <div className="flex items-center justify-between mb-2 w-full">
-        <button
-          onClick={addRow}
-          className="px-3 py-1 rounded bg-green-700 text-white hover:bg-green-800 text-xs font-bold tracking-wide"
-        >
-          + ADD ROW
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={addRow}
+            className="px-3 py-1 rounded bg-green-700 text-white hover:bg-green-800 text-xs font-bold tracking-wide"
+          >
+            + ADD ROW
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!hasUnsavedChanges}
+            className={`px-3 py-1 rounded text-xs font-bold ${
+              hasUnsavedChanges
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+          >
+            💾 SAVE
+          </button>
+        </div>
         <button
           onClick={restore}
           className="border border-green-700 text-green-700 bg-transparent px-2 py-1 rounded text-xs hover:bg-green-50"
@@ -214,21 +242,12 @@ export default function CompetitorTable({ filter = "" }: { filter?: string }) {
                 )}
               </td>
               <td className="px-2 py-0 text-center whitespace-nowrap text-xs flex items-center justify-center gap-2 border-y border-r border-gray-200">
-                {editing === row.originalIdx ? (
-                  <button
-                    onClick={() => setEditing(null)}
-                    className="text-green-600 hover:underline"
-                  >
-                    Save
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => setEditing(row.originalIdx)}
-                    className="text-black hover:underline"
-                  >
-                    Edit
-                  </button>
-                )}
+                <button
+                  onClick={() => setEditing(editing === row.originalIdx ? null : row.originalIdx)}
+                  className="text-black hover:underline"
+                >
+                  {editing === row.originalIdx ? "Done" : "Edit"}
+                </button>
                 <button
                   onClick={() => deleteRow(row.originalIdx)}
                   className="text-red-400 hover:text-red-600 hover:font-bold text-base"

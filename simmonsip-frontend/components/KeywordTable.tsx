@@ -15,6 +15,7 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
   const [sortColumn, setSortColumn] = useState<"keyword" | "patent">("keyword");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [loaded, setLoaded] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // load from API; auto-restore if empty or on failure
   useEffect(() => {
@@ -39,18 +40,31 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
   }, [API]);
 
   // save to API
-  const persist = (data: Row[]) => {
-    fetch(`${API}/api/keywords`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    }).catch(() => {});
+  const persist = async (data: Row[]) => {
+    try {
+      await fetch(`${API}/api/keywords`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      setHasUnsavedChanges(false);
+      showToast("Changes saved successfully", "success");
+    } catch {
+      showToast("Failed to save changes", "error");
+    }
   };
 
-  // whenever rows change after load
+  const handleSave = () => {
+    if (editing !== null) {
+      setEditing(null);
+    }
+    persist(rows);
+  };
+
+  // Mark as having unsaved changes when rows change (but don't auto-save)
   useEffect(() => {
     if (loaded) {
-      persist(rows);
+      setHasUnsavedChanges(true);
     }
   }, [rows, loaded]);
 
@@ -117,12 +131,25 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
   return (
     <div className="mt-8 w-full max-w-3xl mx-auto overflow-x-auto">
       <div className="flex items-center justify-between mb-2">
-        <button
-          onClick={addRow}
-          className="px-3 py-1 rounded bg-green-700 text-white hover:bg-green-800 text-xs font-bold uppercase"
-        >
-          + ADD ROW
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={addRow}
+            className="px-3 py-1 rounded bg-green-700 text-white hover:bg-green-800 text-xs font-bold uppercase"
+          >
+            + ADD ROW
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!hasUnsavedChanges}
+            className={`px-3 py-1 rounded text-xs font-bold ${
+              hasUnsavedChanges
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+            }`}
+          >
+            💾 SAVE
+          </button>
+        </div>
         <button
           onClick={restore}
           className="border border-green-700 text-green-700 bg-transparent px-2 py-1 rounded text-xs hover:bg-green-50"
@@ -198,15 +225,12 @@ export default function KeywordTable({ filter = "" }: { filter?: string }) {
                 )}
               </td>
               <td className="px-2 py-0 text-center whitespace-nowrap text-xs flex items-center justify-center gap-2 border-y border-r border-gray-200">
-                {editing === row.originalIdx ? (
-                  <button onClick={() => setEditing(null)} className="text-green-600 hover:underline">
-                    Save
-                  </button>
-                ) : (
-                  <button onClick={() => setEditing(row.originalIdx)} className="text-black hover:underline">
-                    Edit
-                  </button>
-                )}
+                <button
+                  onClick={() => setEditing(editing === row.originalIdx ? null : row.originalIdx)}
+                  className="text-black hover:underline"
+                >
+                  {editing === row.originalIdx ? "Done" : "Edit"}
+                </button>
                 <button
                   onClick={() => deleteRow(row.originalIdx)}
                   className="text-red-400 hover:text-red-600 hover:font-bold text-base"

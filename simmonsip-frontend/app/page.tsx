@@ -23,8 +23,26 @@ export default function Home() {
 
   useEffect(() => {
     const saved = localStorage.getItem("pp_trawl_results");
-    if (saved) setResults(JSON.parse(saved) as Result[]);
+    if (saved) {
+      const savedResults = JSON.parse(saved) as Result[];
+      setResults(savedResults);
+      // Collapse all groups by default
+      const allKeys = new Set(
+        savedResults.map((r) => groupBy === "company" ? r.company : r.keyword)
+      );
+      setCollapsedCompanies(allKeys);
+    }
   }, []);
+
+  // When results or groupBy changes, collapse all groups
+  useEffect(() => {
+    if (results.length > 0) {
+      const allKeys = new Set(
+        results.map((r) => groupBy === "company" ? r.company : r.keyword)
+      );
+      setCollapsedCompanies(allKeys);
+    }
+  }, [results, groupBy]);
 
   const exportToCSV = () => {
     const csv = [
@@ -88,6 +106,17 @@ export default function Home() {
     });
   };
 
+  const expandAll = () => {
+    setCollapsedCompanies(new Set());
+  };
+
+  const collapseAll = () => {
+    const allKeys = new Set(
+      results.map((r) => groupBy === "company" ? r.company : r.keyword)
+    );
+    setCollapsedCompanies(allKeys);
+  };
+
   const groupedResults: GroupedResults = results.reduce((acc, result) => {
     const key = groupBy === "company" ? result.company : result.keyword;
     if (!acc[key]) acc[key] = [];
@@ -142,6 +171,13 @@ export default function Home() {
                 <option value="company">Group by Company</option>
                 <option value="keyword">Group by Keyword</option>
               </select>
+
+              <button
+                onClick={collapsedCompanies.size > 0 ? expandAll : collapseAll}
+                className="px-3 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 text-sm"
+              >
+                {collapsedCompanies.size > 0 ? "Expand All" : "Collapse All"}
+              </button>
             </>
           )}
         </div>
