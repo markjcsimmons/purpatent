@@ -1,41 +1,64 @@
 import { NextResponse } from "next/server";
-import path from "path";
-import fs from "fs/promises";
 import { randomUUID, createHash } from "crypto";
-
-const dataDir = process.env.DATA_DIR || path.join(process.cwd(), "data");
-const imgJson = path.join(dataDir, "images.json");
+import { supabase } from "@/lib/supabase";
 
 export async function POST(request: Request) {
-  const form = await request.formData();
-  const file = form.get("file");
-  const folderRaw = form.get("folder");
-  const folder = typeof folderRaw === "string" && folderRaw.trim() ? folderRaw.trim() : "Unsorted";
-  if (!file || !(file instanceof File)) {
-    return NextResponse.json({ error: "No file" }, { status: 400 });
-  }
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
-  const uploadsDir = path.join(process.cwd(), "public", "uploads", folder);
-  await fs.mkdir(uploadsDir, { recursive: true });
-
-  const ext = path.extname(file.name) || ".png";
-  const filename = `${randomUUID()}${ext}`;
-  const filePath = path.join(uploadsDir, filename);
-  await fs.writeFile(filePath, buffer);
-
-  // compute file hash (sha1) as a stable fingerprint
-  const phash = createHash("sha1").update(buffer).digest("hex");
-
-  // persist record
-  await fs.mkdir(dataDir, { recursive: true });
-  let arr: { folder: string; url: string; filename?: string; phash?: string }[] = [];
   try {
-    arr = JSON.parse(await fs.readFile(imgJson, "utf8"));
-  } catch {}
-  arr.push({ folder, url: `/uploads/${encodeURIComponent(folder)}/${filename}`, filename, phash });
-  await fs.writeFile(imgJson, JSON.stringify(arr, null, 2), "utf8");
+    const form = await request.formData();
+    const file = form.get("file");
+    const folderRaw = form.get("folder");
+    const folder = typeof folderRaw === "string" && folderRaw.trim() ? folderRaw.trim() : "Unsorted";
+    
+    if (!file || !(file instanceof File)) {
+      return NextResponse.json({ error: "No file" }, { status: 400 });
+    }
 
-  return NextResponse.json({ url: `/uploads/${encodeURIComponent(folder)}/${filename}` });
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Generate unique filename
+    const ext = file.name.split('.').pop() || 'png';
+    const filename = `${randomUUID()}.${ext}`;
+    const storagePath = `${folder}/${filename}`;
+
+    // Compute file hash as fingerprint
+    const phash = createHash("sha1").update(buffer).digest("hex");
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('patent-images')
+      .upload(storagePath, buffer, {
+        contentType: file.type || 'image/png',
+        upsert: false
+      });
+
+    if (uploadError) {
+      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('patent-images')
+      .getPublicUrl(storagePath);
+
+    // Store metadata in database
+    const { error: dbError } = await supabase
+      .from('images')
+      .insert({
+        folder,
+        filename,
+        url: publicUrl,
+        phash
+      });
+
+    if (dbError) {
+      // Rollback: delete uploaded file
+      await supabase.storage.from('patent-images').remove([storagePath]);
+      return NextResponse.json({ error: dbError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ url: publicUrl });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 }

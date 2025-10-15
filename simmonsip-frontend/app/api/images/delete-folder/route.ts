@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,28 +8,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No folder" }, { status: 400 });
     }
 
-    const dataPath = path.join(process.env.DATA_DIR || path.join(process.cwd(), "data"), "images.json");
-    let arr: { folder: string; url: string; filename?: string; phash?: string }[] = [];
-    try {
-      arr = JSON.parse(await fs.readFile(dataPath, "utf8"));
-    } catch {}
+    // Find all images in this folder
+    const { data: images, error: findError } = await supabase
+      .from('images')
+      .select('*')
+      .eq('folder', folder);
 
-    const toRemove = arr.filter((i) => i.folder === folder);
-    if (toRemove.length === 0) {
-      // Still attempt to remove the folder on disk for cleanliness
-      const uploadsDir = path.join(process.cwd(), "public", "uploads", folder);
-      await fs.rm(uploadsDir, { recursive: true, force: true }).catch(() => {});
+    if (findError) {
+      return NextResponse.json({ error: findError.message }, { status: 500 });
+    }
+
+    if (!images || images.length === 0) {
       return NextResponse.json({ success: true, removed: 0 });
     }
 
-    const remaining = arr.filter((i) => i.folder !== folder);
-    await fs.writeFile(dataPath, JSON.stringify(remaining, null, 2), "utf8");
+    // Delete all files from storage
+    const storagePaths = images.map(img => `${img.folder}/${img.filename}`);
+    await supabase.storage
+      .from('patent-images')
+      .remove(storagePaths);
 
-    // Remove files and the folder itself
-    const uploadsDir = path.join(process.cwd(), "public", "uploads", folder);
-    await fs.rm(uploadsDir, { recursive: true, force: true }).catch(() => {});
+    // Delete all records from database
+    const { error: deleteError } = await supabase
+      .from('images')
+      .delete()
+      .eq('folder', folder);
 
-    return NextResponse.json({ success: true, removed: toRemove.length });
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, removed: images.length });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }

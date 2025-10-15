@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,24 +7,34 @@ export async function POST(req: NextRequest) {
     if (!url || typeof url !== "string") {
       return NextResponse.json({ error: "No url" }, { status: 400 });
     }
-    const dataPath = path.join(process.env.DATA_DIR || path.join(process.cwd(), "data"), "images.json");
-    let arr: { folder: string; url: string; filename?: string; phash?: string }[] = [];
-    try {
-      arr = JSON.parse(await fs.readFile(dataPath, "utf8"));
-    } catch {}
 
-    const idx = arr.findIndex((i) => i.url === url);
-    if (idx === -1) {
+    // Find the image in the database
+    const { data: images, error: findError } = await supabase
+      .from('images')
+      .select('*')
+      .eq('url', url)
+      .single();
+
+    if (findError || !images) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    const [removed] = arr.splice(idx, 1);
-    await fs.writeFile(dataPath, JSON.stringify(arr, null, 2), "utf8");
 
-    // delete actual file if local uploads path
-    if (removed.filename) {
-      const filePath = path.join(process.cwd(), "public", "uploads", removed.folder || "Unsorted", removed.filename);
-      await fs.unlink(filePath).catch(() => {});
+    // Delete from storage
+    const storagePath = `${images.folder}/${images.filename}`;
+    await supabase.storage
+      .from('patent-images')
+      .remove([storagePath]);
+
+    // Delete from database
+    const { error: deleteError } = await supabase
+      .from('images')
+      .delete()
+      .eq('url', url);
+
+    if (deleteError) {
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
+
     return NextResponse.json({ success: true });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

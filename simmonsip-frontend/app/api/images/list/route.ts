@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs/promises";
-import path from "path";
+import { supabase } from "@/lib/supabase";
 
 type StoredImage = { folder: string; url: string; filename?: string; phash?: string };
 
@@ -31,10 +30,17 @@ export async function OPTIONS(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const dataPath = path.join(process.env.DATA_DIR || path.join(process.cwd(), "data"), "images.json");
-    const arr: StoredImage[] = JSON.parse(await fs.readFile(dataPath, "utf8"));
+    const { data, error } = await supabase
+      .from('images')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return new NextResponse(JSON.stringify([]), { status: 200 });
+    }
+
     const origin = allowOriginFrom(req);
-    return new NextResponse(JSON.stringify(arr), { status: 200, headers: corsHeaders(origin) });
+    return new NextResponse(JSON.stringify(data || []), { status: 200, headers: corsHeaders(origin) });
   } catch {
     return new NextResponse(JSON.stringify([]), { status: 200 });
   }
