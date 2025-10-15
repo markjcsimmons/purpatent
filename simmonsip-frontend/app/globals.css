@@ -12,18 +12,41 @@
   --font-mono: var(--font-plex-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+input, textarea, select {
+  font-family: var(--font-plex-sans), sans-serif;
+}
+
+button {
+  font-family: var(--font-plex-sans), sans-serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-plex-mono), monospace;
-  font-size: 11px;
+  background: #f9fafb;
+  color: #1f2937;
+  font-family: var(--font-plex-sans), sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #111827;
+    color: #f3f4f6;
+  }
 }
 
 @keyframes typing {

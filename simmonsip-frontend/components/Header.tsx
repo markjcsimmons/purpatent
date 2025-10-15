@@ -14,17 +14,17 @@ export default function Header() {
   ];
 
   return (
-    <header className="w-full border-b border-gray-200 bg-white">
-      <div className="max-w-5xl mx-auto px-4 py-4">
+    <header className="w-full bg-white shadow-sm sticky top-0 z-40">
+      <div className="max-w-6xl mx-auto px-6 py-5">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0">
+          <Link href="/" className="flex-shrink-0 hover:opacity-80 transition-opacity">
             <Logo />
           </Link>
 
           {/* Navigation */}
           <nav>
-            <ul className="flex items-center gap-1">
+            <ul className="flex items-center gap-2">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -32,11 +32,11 @@ export default function Header() {
                     <Link
                       href={item.href}
                       className={`
-                        px-3 py-1.5 rounded text-xs font-medium transition-colors
+                        px-4 py-2 rounded-lg text-sm font-medium transition-all
                         ${
                           isActive
-                            ? "bg-green-700 text-white"
-                            : "text-gray-700 hover:bg-gray-100"
+                            ? "bg-green-600 text-white shadow-sm"
+                            : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
                         }
                       `}
                     >

@@ -34,11 +34,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${plexSans.variable} ${plexMono.variable} antialiased bg-background text-foreground flex flex-col items-center`}
+        className={`${plexSans.variable} ${plexMono.variable} antialiased`}
       >
         <AuthGate>
           <Header />
-          <main className="w-full max-w-5xl px-4 pb-12">{children}</main>
+          <main className="w-full max-w-6xl mx-auto px-6 py-8">{children}</main>
         </AuthGate>
         <ToastContainer />
       </body>
